@@ -14,8 +14,6 @@ vector<string> split(string a, char b) {
         return d;
 }
 
-
-
 vector<unsigned char> buildPacket(string domain) {
 	vector<unsigned char> packet;
 
@@ -65,21 +63,29 @@ vector<unsigned char> buildPacket(string domain) {
 
 string decodeResponse(vector<unsigned char> response) {
     size_t pos = 12;
-    while (pos < response.size() && response[pos] != 0) {
-        ++pos;
-    }
+
+    while (response[pos] != 0) pos++;
     pos += 5;
 
-    size_t ip_start = pos + 10;
-    if (ip_start + 4 > response.size()) {
-        return "Invalid response";
+    if (response[pos] == 0xC0) {
+        pos += 2;
+    } else {
+        while (response[pos] != 0) pos++;
+        pos++;
     }
 
+    pos += 8;
+
+    uint16_t data_len = (response[pos] << 8) | response[pos + 1];
+    pos += 2;
+
+    if (data_len != 4) return "Not an A record";
+
     ostringstream ip;
-    ip << static_cast<int>(response[ip_start]) << '.'
-       << static_cast<int>(response[ip_start + 1]) << '.'
-       << static_cast<int>(response[ip_start + 2]) << '.'
-       << static_cast<int>(response[ip_start + 3]);
+    ip << static_cast<int>(response[pos]) << '.'
+       << static_cast<int>(response[pos + 1]) << '.'
+       << static_cast<int>(response[pos + 2]) << '.'
+       << static_cast<int>(response[pos + 3]);
 
     return ip.str();
 }
@@ -134,8 +140,6 @@ class DNS {
 			return address;
 		}	
 };
-
-
 
 int main() {
 	string domain = "github.com";
